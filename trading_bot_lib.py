@@ -1412,20 +1412,20 @@ class StrategyConfig:
     Telegram và state cũ không bị lỗi.
     """
     DEFAULTS = {
-        'current_interval': '5m',
-        'signal_interval': '5m',
-        'timeframe_seconds': 900.0,
+        'current_interval': '1m',
+        'signal_interval': '1m',
+        'timeframe_seconds': 60.0,
         'use_quote_volume': 1.0,
 
-        # Tín hiệu chính: giống bản đầu tiên, chỉ dùng nến đã đóng.
+        # Tín hiệu chính: 1m | EMA 9/21 | BUY >= 0.50 | SELL >= 100.00
         'ema_fast_period': 9,
         'ema_slow_period': 21,
         'signal_volume_lookback': 20,
-        'buy_score_threshold': 1,
-        'sell_score_threshold': 1,
-        'buy_min_score_gap': 1.0,
-        'sell_min_score_gap': 0.4,
-        'buy_min_volume_ratio': 1,
+        'buy_score_threshold': 0.50,
+        'sell_score_threshold': 100.00,
+        'buy_min_score_gap': 0.0,
+        'sell_min_score_gap': 0.0,
+        'buy_min_volume_ratio': 1.0,
         'sell_min_volume_ratio': 1.10,
         'buy_min_body_pct': 0.15,
         'sell_min_body_pct': 0.08,
@@ -1434,69 +1434,49 @@ class StrategyConfig:
         'max_signal_candle_range_pct': 5.0,
         'buy_taker_ratio_min': 0.55,
         'sell_taker_ratio_min': 0.55,
-        'btc_context_enabled': 1.0,
+        'btc_context_enabled': 0.0,
         'btc_block_buy_drop_pct': 1.0,
-        # Alias giao diện cũ; bộ điểm mới tự kiểm tra EMA theo hướng.
-        'buy_require_ema_trend': 1.0,
+        'buy_require_ema_trend': 0.0,
         'sell_require_ema_trend': 0.0,
 
-        # Quản lý LONG và SHORT hoàn toàn tách riêng (ROI margin sau đòn bẩy).
-        'long_tp_roi_pct': 50,
-        'long_sl_roi_pct': 0,
-        'short_tp_roi_pct': 125.0,
-        'short_sl_roi_pct': 50.0,
+        # BUY TP/SL: 20.00 / 100.00% | SELL: 0.00 / 0.00% (Tắt)
+        'long_tp_roi_pct': 20.0,
+        'long_sl_roi_pct': 100.0,
+        'short_tp_roi_pct': 0.0,
+        'short_sl_roi_pct': 0.0,
         'long_emergency_stop_roi_pct': 0.0,
         'short_emergency_stop_roi_pct': 0.0,
         'long_max_hold_seconds': 0,
         'short_max_hold_seconds': 0,
-        # Alias cũ để state/Telegram cũ không lỗi.
         'strategy_tp_roi': 0.0,
         'strategy_sl_roi': 0.0,
         'emergency_stop_roi': 0.0,
 
-        # DCA LIVE theo % GIÁ đi sai so với giá khớp gần nhất.
-        # BUY: giá giảm trigger% từ last_dca_price. SELL: giá tăng trigger%.
-        'enable_dca_long': 1.0,
-        'enable_dca_short': 0.0,
-        # Chọn cách nhồi riêng từng hướng. traditional = giữ nguyên logic file gốc.
-        # fibonacci = giá Fib×5 và vốn Fib×1 (vốn tính từ initial_margin, không nhân dồn).
-        'long_dca_strategy': 'traditional',
-        'short_dca_strategy': 'traditional',
+        # Nhồi BUY: TẮT | mode=fibonacci (Fib giá 5/10/15/25/40%, vốn 1/2/3/5/8x initial, max 5 lần)
+        'enable_dca_long': 0.0,
+        'long_dca_strategy': 'fibonacci',
         'long_dca_trigger_price_pct': 5.0,
-        'short_dca_trigger_price_pct': 10.0,
-        # Mỗi lần nhồi lấy VỐN LẦN VÀO GẦN NHẤT × hệ số dưới đây.
-        # Ví dụ 1.5: vốn đầu 10 -> DCA1 15 -> DCA2 22.5 -> DCA3 33.75 USDT.
-        'long_dca_order_multiplier': 1.2,
-        'short_dca_order_multiplier': 1.0,
-        # Key cũ chỉ giữ để đọc cấu hình cũ; logic DCA mới không dùng chúng.
-        'long_dca_add_margin_pct': 100.0,
-        'short_dca_add_margin_pct': 100.0,
-        'long_dca_step_multiplier': 1.0,
-        'short_dca_step_multiplier': 1.0,
-        'long_max_dca_steps': 100,
-        'short_max_dca_steps': 0,
+        'long_dca_order_multiplier': 1.0,
+        'long_max_dca_steps': 5,
         'long_dca_min_seconds_between_adds': 20,
-        'short_dca_min_seconds_between_adds': 20,
-        # Alias cũ; không còn dùng làm điều kiện chính.
-        'dca_mode': 'loss',
-        'dca_trigger_roi_pct': 25.0,
-        'dca_multiplier': 1.10,
-        'max_dca_steps': 3,
-        'dca_min_seconds_between_adds': 20,
 
-        # Bảo vệ lợi nhuận tách riêng.
+        # Nhồi SELL: TẮT | mode=traditional (giá tăng 10.0%, vốn gần nhất x1.0, max 0 lần)
+        'enable_dca_short': 0.0,
+        'short_dca_strategy': 'traditional',
+        'short_dca_trigger_price_pct': 10.0,
+        'short_dca_order_multiplier': 1.0,
+        'short_max_dca_steps': 0,
+        'short_dca_min_seconds_between_adds': 20,
+
+        # Bảo vệ BUY/SELL: TẮT / TẮT
         'enable_profit_protect_long': 0.0,
         'enable_profit_protect_short': 0.0,
         'long_protect_start_roi_pct': 50.0,
         'short_protect_start_roi_pct': 50.0,
         'long_protect_pullback_roi_pct': 30.0,
         'short_protect_pullback_roi_pct': 30.0,
-        # Alias cũ.
-        'profit_protect_enabled': 0.0,
-        'profit_protect_start_roi': 50.0,
-        'profit_protect_pullback_roi': 30.0,
 
-        # Reverse và thoát bằng tín hiệu ngược tách riêng theo vị thế cũ.
+        # Reverse & Thoát tín hiệu ngược
         'long_reverse_mode': 'none',
         'short_reverse_mode': 'none',
         'long_reverse_min_score': 7.0,
@@ -1507,29 +1487,18 @@ class StrategyConfig:
         'short_enable_exit_on_opposite_signal': 0.0,
         'long_opposite_exit_min_score': 7.0,
         'short_opposite_exit_min_score': 7.0,
-        # Alias cũ.
-        'reverse_mode': 'confirmed',
-        'reverse_min_score': 7.0,
-        'max_reverse_count': 1,
-        'enable_exit_on_opposite_signal': 0.0,
-        'opposite_exit_min_score': 7.0,
 
-        # Cân bằng exposure: cấu hình riêng khi hệ thống muốn ưu tiên BUY hoặc SELL.
-        'enable_side_balance_buy': 1.0,
-        'enable_side_balance_sell': 1.0,
+        # Cân bằng exposure
+        'enable_side_balance_buy': 0.0,
+        'enable_side_balance_sell': 0.0,
         'buy_side_balance_mode': 'filter',
         'sell_side_balance_mode': 'filter',
         'buy_side_balance_threshold': 1.25,
         'sell_side_balance_threshold': 1.25,
         'buy_balance_override_min_signal_score': 6.0,
         'sell_balance_override_min_signal_score': 6.5,
-        # Alias cũ.
-        'enable_side_balance': 1.0,
-        'side_balance_mode': 'filter',
-        'side_balance_threshold': 1.25,
-        'balance_override_min_signal_score': 3.0,
 
-        # Rủi ro tài khoản: có giới hạn tổng và giới hạn riêng BUY/SELL.
+        # Quản lý rủi ro & Lọc coin: Giá coin 0 -> 0 | volume >= 0
         'max_positions': 100,
         'max_long_positions': 18,
         'max_short_positions': 1,
@@ -1544,9 +1513,8 @@ class StrategyConfig:
         'ensure_one_way_mode': 1.0,
         'trading_enabled': 1.0,
 
-        # Scanner giống bản đầu tiên.
         'quote_asset': 'USDT',
-        'min_24h_volume': 10_000_000.0,
+        'min_24h_volume': 0.0,
         'scan_top_coin_limit': 500,
         'max_signal_eval_coins': 400,
         'min_coin_price': 0.0,
@@ -1558,47 +1526,13 @@ class StrategyConfig:
         'target_leverage': 50,
         'min_allowed_leverage': 1,
 
-        # Cooldown/runtime.
         'cooldown_after_close_seconds': 60,
         'blacklist_after_tp_sl_seconds': 1800,
         'coin_cooldown_after_loss_sec': 1800,
         'max_hold_seconds': 0,
         'max_consecutive_losses_before_pause': 999,
         'pause_after_loss_streak_sec': 0,
-
-        # Alias cũ để tương thích.
-        'volume_factor': 1.10,
-        'range_factor': 1.10,
-        'min_prev_range_pct': 0.08,
-        'block_same_candle_reverse': 1.0,
-        'low_volume_filter_enabled': 0.0,
-        'force_rest_signal_enabled': 0.0,
-        'entry_buy_force_pct': 0.0,
-        'entry_sell_force_pct': 0.0,
-        'exit_force_pct': 0.0,
-        'reverse_force_pct': 0.0,
-        'min_force_gap_pct': 0.0,
-        'entry_score_threshold': 0.0,
-        'exit_score_threshold': 0.0,
-        'reverse_score_threshold': 999999.0,
-        'min_score_gap': 0.0,
-        'entry_min_body_pct': 0.0,
-        'entry_min_range_pct': 0.0,
-        'entry_min_body_ratio': 0.0,
-        'entry_min_quote_volume': 0.0,
-        'entry_min_trades': 0,
-        'exit_min_body_pct': 0.0,
-        'exit_min_range_pct': 0.0,
-        'exit_min_body_ratio': 0.0,
-        'exit_min_quote_volume': 0.0,
-        'exit_min_trades': 0,
-        'exit_taker_ratio_min': 0.0,
-        'compare_interval': '15m',
-        'market_interval': '15m',
-        'extreme_interval': '15m',
-        'min_elapsed_seconds': 0.0,
     }
-
     INT_KEYS = {
         'max_reverse_count', 'long_max_reverse_count', 'short_max_reverse_count',
         'scan_top_coin_limit', 'max_signal_eval_coins', 'min_24h_trade_count',
@@ -3872,14 +3806,20 @@ class BaseBot:
 
                 total_balance, available_balance = get_total_and_available_balance(self.api_key, self.api_secret)
                 margin_balance = get_margin_balance(self.api_key, self.api_secret)
-                if margin_balance is None or margin_balance <= 0 or available_balance is None:
+                
+                # Kiểm tra số dư hợp lệ
+                if total_balance is None or total_balance <= 0 or available_balance is None:
                     self.log(f"❌ {symbol} không lấy được số dư")
                     return False
-                required_usd = float(margin_override) if margin_override is not None else margin_balance * (self.percent / 100.0)
+
+                # SỬA Ở ĐÂY: Dùng total_balance (tổng số dư ví) thay vì margin_balance
+                required_usd = float(margin_override) if margin_override is not None else total_balance * (self.percent / 100.0)
+                
                 cap_key = 'long_max_total_margin_per_symbol_pct' if side == 'BUY' else 'short_max_total_margin_per_symbol_pct'
-                per_symbol_cap = margin_balance * float(_STRATEGY_CONFIG.get(cap_key, 4.0) or 0.0) / 100.0
+                per_symbol_cap = total_balance * float(_STRATEGY_CONFIG.get(cap_key, 100.0) or 0.0) / 100.0
                 if per_symbol_cap > 0:
                     required_usd = min(required_usd, per_symbol_cap)
+                    
                 if required_usd <= 0 or required_usd > available_balance:
                     self.log(f"❌ {symbol} margin yêu cầu {required_usd:.4f} > khả dụng {available_balance:.4f}")
                     return False
